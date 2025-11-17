@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: website
+  namespace: dev
+spec:
+  selector:
+    matchLabels:
+      app: website
+  template:
+    metadata:
+      labels:
+        app: website
+    spec:
+      containers:
+      - name: website
+        image: crissime/gpe-front:latest
+        resources:
+          limits:
+            memory: "256Mi"
+            cpu: "1000m"
+          requests:
+            memory: "128Mi"
+            cpu: "500m"          
+        ports:
+        - containerPort: 3000

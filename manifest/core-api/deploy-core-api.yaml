@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: core-api
+  namespace: dev
+spec:
+  selector:
+    matchLabels:
+      app: core-api
+  template:
+    metadata:
+      labels:
+        app: core-api
+    spec:
+      containers:
+      - name: core-api
+        image: crissime/core-api:latest
+        resources:
+          limits:
+            memory: "256Mi"
+            cpu: "1000m"
+          requests:
+            memory: "128Mi"
+            cpu: "500m"          
+        ports:
+        - containerPort: 8080
