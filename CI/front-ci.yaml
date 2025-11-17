@@ -1,15 +1,39 @@
-name: Build and auto tag
+name: Build and Deploy via GitOps
 
 on:
   push:
     branches:
       - main
       - dev
+    paths:
+      - 'src/**'
+      - 'public/**'
+      - 'middleware.ts'
+      - 'next.config.ts'
+      - 'next-i18next.config.js'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'pnpm-lock.yaml'
+      - 'Dockerfile'
+      - '.env.example'
+
   pull_request:
     branches: [ "main" ]
+    paths:
+      - 'src/**'
+      - 'public/**'
+      - 'middleware.ts'
+      - 'next.config.ts'
+      - 'next-i18next.config.js'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'pnpm-lock.yaml'
+      - 'Dockerfile'
+      - '.env.example'
 
 env:
   REGISTRY: ghcr.io
+
 
 jobs:
 
@@ -19,25 +43,20 @@ jobs:
       contents: write
       packages: write
 
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0  
 
-      - name: Authenticate as GitHub App
-        id: app-token
-        uses: tibdex/github-app-token@v1
-        with:
-          app_id: ${{ secrets.GH_APP_ID }}
-          private_key: ${{ secrets.GH_APP_PRIVATE_KEY }}
-
       - name: Determine next version
         id: version
         if: github.event_name == 'push'
         run: |
           latest=$(git tag --sort=-v:refname | head -n 1)
-          echo "Latest tag: $latest"
 
           if [[ -z "$latest" ]]; then
             latest="0.0"
@@ -54,7 +73,7 @@ jobs:
           fi
 
           new="$major.$minor"
-          echo "New version: $new"
+
           echo "version=$new" >> $GITHUB_OUTPUT
 
       - name: Create Git tag
@@ -63,7 +82,7 @@ jobs:
           git config user.name "github-actions"
           git config user.email "actions@github.com"
           git tag "${{ steps.version.outputs.version }}"
-          git push https://x-access-token:${{ steps.app-token.outputs.token }}@github.com/${{ github.repository }}.git "${{ steps.version.outputs.version }}"
+          git push origin "${{ steps.version.outputs.version }}"
 
       - name: Log in to GHCR
         if: github.event_name == 'push'
@@ -73,42 +92,46 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extract metadata
-        if: github.event_name == 'push'
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.REGISTRY }}/${{ github.repository }}
-          tags: |
-            type=raw,value=${{ steps.version.outputs.version }}        
-
-      - name: Build and push 
+      - name: Build and push image
         if: github.event_name == 'push'
         uses: docker/build-push-action@v5
         with:
           context: .
           push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          tags: ghcr.io/${{ github.repository }}:${{ steps.version.outputs.version }}
 
-      - name: Clone ArgoCD repo
-        if: github.event_name == 'push'
-        run: |
-          git clone https://x-access-token:${{ steps.app-token.outputs.token }}@github.com/flotio-dev/k8s_config.git manifest
 
-      - name: Update image tag
-        if: github.event_name == 'push'
+  update-gitops:
+    needs: build
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Generate token from GitHub App
+        id: app-token
+        uses: tibdex/github-app-token@v1
+        with:
+          app_id: ${{ secrets.GH_APP_ID }}
+          private_key: ${{ secrets.GH_APP_PRIVATE_KEY }}
+
+      - name: Checkout GitOps repo
+        uses: actions/checkout@v4
+        with:
+          repository: flotio-dev/k8s_config
+          token: ${{ steps.app-token.outputs.token }}
+
+      - name: Update deployment
         run: |
           FILE="manifest/website/deploy-front.yaml"
-          NEW_TAG="${{ steps.version.outputs.version }}"
-          sed -i "s|image: .*|image: ghcr.io/${{ github.repository }}:$NEW_TAG|g" $FILE
+          sed -i "s|image: .*|image: ghcr.io/${{ github.repository }}:${{ needs.build.outputs.version }}|g" $FILE
 
       - name: Commit & push
-        if: github.event_name == 'push'
         run: |
           cd manifest
           git config user.email "actions@github.com"
           git config user.name "ArgoCD Sync Bot"
           git add .
-          git commit -m "Update image to ${{ steps.version.outputs.version }}"
+          git commit -m "Deploy version ${{ needs.build.outputs.version }}"
           git push https://x-access-token:${{ steps.app-token.outputs.token }}@github.com/flotio-dev/k8s_config.git HEAD:main
