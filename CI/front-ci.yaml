@@ -1,9 +1,10 @@
-name: Build and Deploy Services
+name: Build and auto tag
 
 on:
   push:
     branches:
       - main
+      - dev
   pull_request:
     branches: [ "main" ]
 
@@ -12,18 +13,60 @@ env:
 
 jobs:
 
-
   build:
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write
       packages: write
-    steps:
 
+    steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  
+
+      - name: Authenticate as GitHub App
+        id: app-token
+        uses: tibdex/github-app-token@v1
+        with:
+          app_id: ${{ secrets.GH_APP_ID }}
+          private_key: ${{ secrets.GH_APP_PRIVATE_KEY }}
+
+      - name: Determine next version
+        id: version
+        if: github.event_name == 'push'
+        run: |
+          latest=$(git tag --sort=-v:refname | head -n 1)
+          echo "Latest tag: $latest"
+
+          if [[ -z "$latest" ]]; then
+            latest="0.0"
+          fi
+
+          major=$(echo $latest | cut -d. -f1)
+          minor=$(echo $latest | cut -d. -f2)
+
+          if [[ "${GITHUB_REF_NAME}" == "main" ]]; then
+            major=$((major + 1))
+            minor=0
+          else
+            minor=$((minor + 1))
+          fi
+
+          new="$major.$minor"
+          echo "New version: $new"
+          echo "version=$new" >> $GITHUB_OUTPUT
+
+      - name: Create Git tag
+        if: github.event_name == 'push'
+        run: |
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git tag "${{ steps.version.outputs.version }}"
+          git push https://x-access-token:${{ steps.app-token.outputs.token }}@github.com/${{ github.repository }}.git "${{ steps.version.outputs.version }}"
 
       - name: Log in to GHCR
+        if: github.event_name == 'push'
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
@@ -31,15 +74,41 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Extract metadata
+        if: github.event_name == 'push'
         id: meta
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.REGISTRY }}/${{ github.repository }}
+          tags: |
+            type=raw,value=${{ steps.version.outputs.version }}        
 
       - name: Build and push 
+        if: github.event_name == 'push'
         uses: docker/build-push-action@v5
         with:
           context: .
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+
+      - name: Clone ArgoCD repo
+        if: github.event_name == 'push'
+        run: |
+          git clone https://x-access-token:${{ steps.app-token.outputs.token }}@github.com/flotio-dev/k8s_config.git manifest
+
+      - name: Update image tag
+        if: github.event_name == 'push'
+        run: |
+          FILE="manifest/website/deploy-front.yaml"
+          NEW_TAG="${{ steps.version.outputs.version }}"
+          sed -i "s|image: .*|image: ghcr.io/${{ github.repository }}:$NEW_TAG|g" $FILE
+
+      - name: Commit & push
+        if: github.event_name == 'push'
+        run: |
+          cd manifest
+          git config user.email "actions@github.com"
+          git config user.name "ArgoCD Sync Bot"
+          git add .
+          git commit -m "Update image to ${{ steps.version.outputs.version }}"
+          git push https://x-access-token:${{ steps.app-token.outputs.token }}@github.com/flotio-dev/k8s_config.git HEAD:main
