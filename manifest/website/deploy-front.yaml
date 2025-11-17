@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: website
-        image: ghcr.io/flotio-dev/website:0.0
+        image: ghcr.io/flotio-dev/website:6.0
         resources:
           limits:
             memory: "256Mi"
