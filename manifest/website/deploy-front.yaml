@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: website
-        image: crissime/gpe-front:latest
+        image: ghcr.io/flotio-dev/website:0.0
         resources:
           limits:
             memory: "256Mi"
