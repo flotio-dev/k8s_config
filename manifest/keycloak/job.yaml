@@ -1,0 +1,80 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: pg-provision-backend
+  namespace: dev
+spec:
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: psql
+          image: postgres:16-alpine
+          env:
+            - name: PGHOST
+              valueFrom: { secretKeyRef: { name: pg-admin, key: host } }
+            - name: PGPORT
+              valueFrom: { secretKeyRef: { name: pg-admin, key: port } }
+            - name: PGUSER
+              valueFrom: { secretKeyRef: { name: pg-admin, key: username } }
+            - name: PGPASSWORD
+              valueFrom: { secretKeyRef: { name: pg-admin, key: password } }
+            - name: DB_NAME
+              valueFrom: { secretKeyRef: { name: backend-db-creds, key: db_name } }
+            - name: MIGRATOR_USER
+              valueFrom: { secretKeyRef: { name: backend-db-creds, key: migrator_user } }
+            - name: MIGRATOR_PASS
+              valueFrom: { secretKeyRef: { name: backend-db-creds, key: migrator_pass } }
+            - name: APP_USER
+              valueFrom: { secretKeyRef: { name: backend-db-creds, key: app_user } }
+            - name: APP_PASS
+              valueFrom: { secretKeyRef: { name: backend-db-creds, key: app_pass } }
+          command: ["bash","-euo","pipefail","-c"]
+          args:
+            - |
+              psql \
+                -v ON_ERROR_STOP=1 \
+                -v db_name="$DB_NAME" \
+                -v migrator_user="$MIGRATOR_USER" \
+                -v migrator_pass="$MIGRATOR_PASS" \
+                -v app_user="$APP_USER" \
+                -v app_pass="$APP_PASS" <<'SQL'
+              \set ON_ERROR_STOP on
+
+              -- 1) Créer les rôles si besoin (sans DO $$)
+              SELECT format(
+                       'CREATE ROLE %I LOGIN PASSWORD %L NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT',
+                       :'migrator_user', :'migrator_pass'
+                     )
+              WHERE NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = :'migrator_user') \gexec
+
+              SELECT format(
+                       'CREATE ROLE %I LOGIN PASSWORD %L NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT',
+                       :'app_user', :'app_pass'
+                     )
+              WHERE NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = :'app_user') \gexec
+
+              -- 2) Créer la base si besoin
+              SELECT format('CREATE DATABASE %I', :'db_name')
+              WHERE NOT EXISTS (SELECT 1 FROM pg_database WHERE datname = :'db_name') \gexec
+
+              -- 3) Mettre le propriétaire
+              ALTER DATABASE :"db_name" OWNER TO :"migrator_user";
+
+              -- 4) Passer sur la base
+              \c :db_name
+
+              -- 5) Schéma app + hygiène + droits
+              CREATE SCHEMA IF NOT EXISTS app AUTHORIZATION :"migrator_user";
+
+              REVOKE CREATE ON SCHEMA public FROM PUBLIC;
+              REVOKE ALL ON DATABASE :"db_name" FROM PUBLIC;
+
+              GRANT CONNECT ON DATABASE :"db_name" TO :"app_user";
+              GRANT USAGE ON SCHEMA app TO :"app_user";
+
+              ALTER DEFAULT PRIVILEGES FOR USER :"migrator_user" IN SCHEMA app
+                GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO :"app_user";
+              ALTER DEFAULT PRIVILEGES FOR USER :"migrator_user" IN SCHEMA app
+                GRANT USAGE, SELECT, UPDATE ON SEQUENCES TO :"app_user";
+              SQL

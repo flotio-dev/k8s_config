@@ -1,0 +1,41 @@
+# keycloak/ingress-keycloak.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: keycloak
+  namespace: dev
+  annotations:
+    # cert-manager: issuer Let's Encrypt STAGING pour test
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+
+    # Force HTTPS et HSTS (redirige http -> https)
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/hsts: "true"
+    nginx.ingress.kubernetes.io/hsts-max-age: "31536000"
+    nginx.ingress.kubernetes.io/hsts-include-subdomains: "false"
+    nginx.ingress.kubernetes.io/hsts-preload: "true"
+
+    # Keycloak renvoie parfois de grosses réponses (tokens, html)
+    nginx.ingress.kubernetes.io/proxy-buffer-size: "128k"
+    nginx.ingress.kubernetes.io/proxy-buffers-number: "8"
+
+    # Le service backend parle HTTP (pas HTTPS)
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTP"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - auth.flotio.ovh
+      secretName: keycloak-tls
+  rules:
+    - host: auth.flotio.ovh
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: keycloak      # <-- adapte si différent
+                port:
+                  number: 8080      # <-- adapte si différent
