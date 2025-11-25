@@ -1,0 +1,71 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: garage-external-s3
+  namespace: default
+spec:
+  ports:
+  - name: s3
+    port: 3900
+    targetPort: 3900
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Endpoints
+metadata:
+  name: garage-external-s3
+  namespace: default
+subsets:
+- addresses:
+  - ip: 192.168.1.91
+  ports:
+  - port: 3900
+    name: s3
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: garage-external-admin
+  namespace: default
+spec:
+  ports:
+  - name: admin
+    port: 3903
+    targetPort: 3903
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Endpoints
+metadata:
+  name: garage-external-admin
+  namespace: default
+subsets:
+- addresses:
+  - ip: 192.168.1.91
+  ports:
+  - port: 3903
+    name: admin
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: garage-external-web
+  namespace: default
+spec:
+  ports:
+  - name: web
+    port: 3902
+    targetPort: 3902
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Endpoints
+metadata:
+  name: garage-external-web
+  namespace: default
+subsets:
+- addresses:
+  - ip: 192.168.1.91
+  ports:
+  - port: 3902
+    name: web
