@@ -1,0 +1,13 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: android-builder-binding
+  namespace: android-build
+subjects:
+  - kind: ServiceAccount
+    name: android-builder
+    namespace: android-build
+roleRef:
+  kind: Role
+  name: android-builder-role
+  apiGroup: rbac.authorization.k8s.io
