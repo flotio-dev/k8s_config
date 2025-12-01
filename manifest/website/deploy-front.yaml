@@ -12,9 +12,11 @@ spec:
       labels:
         app: website
     spec:
+      imagePullSecrets:
+        - name: ghcr-creds
       containers:
       - name: website
-        image: ghcr.io/flotio-dev/website:6.0
+        image: ghcr.io/flotio-dev/website:2.0
         resources:
           limits:
             memory: "256Mi"

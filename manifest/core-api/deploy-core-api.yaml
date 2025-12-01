@@ -12,9 +12,11 @@ spec:
       labels:
         app: core-api
     spec:
+      imagePullSecrets:
+        - name: ghcr-creds
       containers:
       - name: core-api
-        image: ghcr.io/flotio-dev/core-api:0.3
+        image: ghcr.io/flotio-dev/core-api:0.4
         resources:
           limits:
             memory: "256Mi"
