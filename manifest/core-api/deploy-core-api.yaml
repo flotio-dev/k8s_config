@@ -63,5 +63,7 @@ spec:
         - containerPort: 8080
         volumeMounts:
         - name: github-app-private-key
+          Configmap:
+            name: github-app-private-key
           mountPath: /secrets/github-app-private-key
           readOnly: true
