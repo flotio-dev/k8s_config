@@ -4,7 +4,7 @@ metadata:
   name: github-app-private-key
   namespace: dev
 data:
-  github-app-private-key: |
+  key: |
     -----BEGIN RSA PRIVATE KEY-----
     MIIEpAIBAAKCAQEAxT18+Y0Hs94sSm6XWHHLPsVW81OAPok1XT/zidPHjtnmbaX1
     Awa3tOlhKRQ90Qowl4mXpcQJUSClarXX+TOH8gNynK2cQE/BQGr38pgXVS2RaJne
