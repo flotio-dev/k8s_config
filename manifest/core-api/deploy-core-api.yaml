@@ -43,7 +43,7 @@ spec:
           value: supersecret1234!
 
         - name: GITHUB_APP_ID
-          value: "2143301"
+          value: "2403932"
 
         - name: GITHUB_APP_PRIVATE_KEY_PATH
           value: /secrets/github-app-private-key/key
