@@ -27,4 +27,4 @@ spec:
   tls:
     - hosts:
       - flotio.ovh
-      secretName: keycloak-tls
+      secretName: website-tls
