@@ -37,7 +37,7 @@ spec:
         - name: API_PORT
           value: "8080"
         - name: DATABASE_URL
-          value: postgres://db-dev:5432/flotio?sslmode=disable
+          value: postgres://flotio:flotio@db-dev:5432/flotio?sslmode=disable
         
         - name: GITHUB_WEBHOOK_SECRET
           value: supersecret1234!
