@@ -50,7 +50,19 @@ spec:
         - name: FLUTTER_BUILD_IMAGE
           value: ghcr.io/flotio-dev/flutter-build:latest
 
+        - name : AWS_S3_BUCKET
+          value: test
 
+        - name : AWS_S3_PREFIX
+          value: builds
+        - name : AWS_S3_ENDPOINT
+          value: https://s3.flotio.ovh/
+        - name : AWS_REGION
+          value: garage
+        - name : AWS_ACCESS_KEY_ID
+          value: GK40c43fa7757d37e0be33db20
+        - name : AWS_SECRET_ACCESS_KEY
+          value: 307a941ac411120a0e8f096fb9e16cbce77734901cc70f6250ac41315d5d7dc8
         resources:
           limits:
             memory: "256Mi"
@@ -68,3 +80,5 @@ spec:
       - name: github-app-private-key
         configMap:
           name: github-app-private-key  
+
+
