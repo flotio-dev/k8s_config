@@ -16,7 +16,7 @@ spec:
         - name: ghcr-creds
       containers:
       - name: core-api
-        image: ghcr.io/flotio-dev/core-api:1.2
+        image: ghcr.io/flotio-dev/core-api:2.0
         env:
         - name: KUBECTL_API
           value: https://kubernetes.default.svc
