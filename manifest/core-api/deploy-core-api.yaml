@@ -30,6 +30,8 @@ spec:
           value: flotio_front
         - name: KEYCLOAK_CLIENT_SECRET
           value: BDzuc71FUUmyCYpesGfx9xMTxXA3xFSQ
+        - name: K8S_NAMESPACE
+          value: "android-build"
 
         - name: KEYCLOAK_ISSUER
           value: https://auth.flotio.ovh/auth/realms/flotio
