@@ -22,7 +22,8 @@ spec:
           value: https://kubernetes.default.svc
         - name: KUBECTL_TOKEN
           value: eyJhbGciOiJSUzI1NiIsImtpZCI6IkxWWkNJcmRHS2IxcDVDZWNjeFNhdFgyN0lySnBnU1Jmd0VGajc1dC1ocDQifQ.eyJhdWQiOlsiaHR0cHM6Ly9rdWJlcm5ldGVzLmRlZmF1bHQuc3ZjLmNsdXN0ZXIubG9jYWwiXSwiZXhwIjoxNzY0Njk3MDE5LCJpYXQiOjE3NjQ2OTM0MTksImlzcyI6Imh0dHBzOi8va3ViZXJuZXRlcy5kZWZhdWx0LnN2Yy5jbHVzdGVyLmxvY2FsIiwia3ViZXJuZXRlcy5pbyI6eyJuYW1lc3BhY2UiOiJhbmRyb2lkLWJ1aWxkIiwic2VydmljZWFjY291bnQiOnsibmFtZSI6ImFuZHJvaWQtYnVpbGRlciIsInVpZCI6ImUxOTUyMDI0LTg4NzgtNDljYS1hMTg5LTljMmI3YTIyNTAzMSJ9fSwibmJmIjoxNzY0NjkzNDE5LCJzdWIiOiJzeXN0ZW06c2VydmljZWFjY291bnQ6YW5kcm9pZC1idWlsZDphbmRyb2lkLWJ1aWxkZXIifQ.FUEUhGR0hj4cN4BXsTfvz9Pgby-V0G9zNP4JaTSmDjgPOpGmFG4aVnsmZgzLqMQTZaVMthD6jDmtwsiGRMOcdWIHSMQe6XR6IkC_7W53XCLoVjTPS7qyec2vDUKafFlK1CcdBz8zAAZiGv3HHMsBrmWypqWwKzh2PcBwBQpMAF7pwNzumiWtN5Ih_wvB_TapHlmSo-RTEBWLd3u6InBDt3SB19zGlSR9fDCAFPoJYPP6DwIvCEWU4H1Qd8LttbT259llef9X_-qNI-7uVoVLocB5UMucZFv-JjWKOfWoBsLQ_h0uhZakkQO2jNjQqPG1RwWZUOaNg8NZEvVxn0Qwqg
-
+        - name: K8S_NAMESPACE
+          value: android-build
         - name : KEYCLOAK_BASE_URL
           value: https://auth.flotio.ovh
         - name: KEYCLOAK_REALM
