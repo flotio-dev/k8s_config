@@ -20,7 +20,7 @@ spec:
                 secretKeyRef:
                   name: postgres-admin
                   key: POSTGRES_USER
-          command: ["sh","-c","until pg_isready -h db-dev -p 5432 -U $POSTGRES_USER; do echo 'waiting for postgres...'; sleep 2; done"]
+          command: ["sh","-c","until pg_isready -h db-dev -p 5432 -U $POSTGRES_USER; do echo 'waiting for postgres...'; sleep 30; done"]
       containers:
         - name: create-user-and-db
           image: postgres:16-alpine
