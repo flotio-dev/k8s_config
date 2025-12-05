@@ -16,7 +16,7 @@ spec:
         - name: ghcr-creds
       containers:
       - name: website
-        image: ghcr.io/flotio-dev/website:11.0
+        image: ghcr.io/flotio-dev/website:11.1
         env:
         - name: NEXT_PUBLIC_API_BASE_URL
           value: http://api-svc:8080
