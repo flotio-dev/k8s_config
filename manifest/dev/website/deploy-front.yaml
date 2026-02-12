@@ -18,14 +18,10 @@ spec:
         - name: website
           image: ghcr.io/flotio-dev/website-next:3.0
           env:
-            - name: NEXT_PUBLIC_API_BASE_URL
-              value: http://api-svc:8080
-            - name: NEXT_PUBLIC_GITHUB_APP
-              value: flotio-app
-            - name: NEXTAUTH_URL
-              value: https://flotio.ovh
-            - name: NEXTAUTH_SECRET
-              value: nextauth-dev-secret-456
+            - name: NEXT_PUBLIC_API_URL
+              value: https://api-dev.flotio.ovh
+            - name: NEXT_PUBLIC_APP_URL
+              value: https://app-dev.flotio.ovh
           resources:
             limits:
               memory: "256Mi"
