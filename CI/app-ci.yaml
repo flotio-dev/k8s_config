@@ -1,4 +1,4 @@
-name: Build and Deploy via GitOps
+name: Build and Deploy App via GitOps
 
 on:
   push:
@@ -6,25 +6,17 @@ on:
       - main
       - dev
     paths:
-      - "cmd/**"
-      - "pkg/**"
+      - "src/**"
+      - "public/**"
+      - "middleware.ts"
+      - "next.config.js"
+      - "next.config.mjs"
+      - "next.config.ts"
+      - "package.json"
+      - "package-lock.json"
+      - "pnpm-lock.yaml"
       - "Dockerfile"
-      - "go.mod"
-      - "go.sum"
-      - "openapi.yaml"
       - ".env.example"
-      - "build/flutter-build.Dockerfile"
-      - "build/build-image.sh"
-
-  pull_request:
-    branches: ["main"]
-    paths:
-      - "cmd/**"
-      - "pkg/**"
-      - "Dockerfile"
-      - "go.mod"
-      - "go.sum"
-      - "openapi.yaml"
 
 env:
   REGISTRY: ghcr.io
@@ -117,9 +109,9 @@ jobs:
       - name: Update deployment
         run: |
           if [[ "${GITHUB_REF_NAME}" == "main" ]]; then
-            FILE="manifest/prod/core-api/deploy-core-api.yaml"
+            FILE="manifest/prod/app/deploy-app.yaml"
           else
-            FILE="manifest/dev/core-api/deploy-core-api.yaml"
+            FILE="manifest/dev/app/deploy-app.yaml"
           fi
 
           sed -i "s|image: .*|image: ghcr.io/${{ github.repository }}:${{ needs.build.outputs.version }}|g" $FILE

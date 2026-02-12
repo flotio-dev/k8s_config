@@ -6,37 +6,35 @@ on:
       - main
       - dev
     paths:
-      - 'src/**'
-      - 'public/**'
-      - 'middleware.ts'
-      - 'next.config.ts'
-      - 'next-i18next.config.js'
-      - 'package.json'
-      - 'package-lock.json'
-      - 'pnpm-lock.yaml'
-      - 'Dockerfile'
-      - '.env.example'
+      - "src/**"
+      - "public/**"
+      - "middleware.ts"
+      - "next.config.ts"
+      - "next-i18next.config.js"
+      - "package.json"
+      - "package-lock.json"
+      - "pnpm-lock.yaml"
+      - "Dockerfile"
+      - ".env.example"
 
   pull_request:
-    branches: [ "main" ]
+    branches: ["main"]
     paths:
-      - 'src/**'
-      - 'public/**'
-      - 'middleware.ts'
-      - 'next.config.ts'
-      - 'next-i18next.config.js'
-      - 'package.json'
-      - 'package-lock.json'
-      - 'pnpm-lock.yaml'
-      - 'Dockerfile'
-      - '.env.example'
+      - "src/**"
+      - "public/**"
+      - "middleware.ts"
+      - "next.config.ts"
+      - "next-i18next.config.js"
+      - "package.json"
+      - "package-lock.json"
+      - "pnpm-lock.yaml"
+      - "Dockerfile"
+      - ".env.example"
 
 env:
   REGISTRY: ghcr.io
 
-
 jobs:
-
   build:
     runs-on: ubuntu-latest
     permissions:
@@ -50,7 +48,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  
+          fetch-depth: 0
 
       - name: Determine next version
         id: version
@@ -100,7 +98,6 @@ jobs:
           push: true
           tags: ghcr.io/${{ github.repository }}:${{ steps.version.outputs.version }}
 
-
   update-gitops:
     needs: build
     if: github.event_name == 'push'
@@ -124,7 +121,12 @@ jobs:
 
       - name: Update deployment
         run: |
-          FILE="manifest/website/deploy-front.yaml"
+          if [[ "${GITHUB_REF_NAME}" == "main" ]]; then
+            FILE="manifest/prod/website/deploy-front.yaml"
+          else
+            FILE="manifest/dev/website/deploy-front.yaml"
+          fi
+
           sed -i "s|image: .*|image: ghcr.io/${{ github.repository }}:${{ needs.build.outputs.version }}|g" $FILE
 
       - name: Commit & push

@@ -1,0 +1,91 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: core-api
+  namespace: prod
+spec:
+  selector:
+    matchLabels:
+      app: core-api
+  template:
+    metadata:
+      labels:
+        app: core-api
+    spec:
+      imagePullSecrets:
+        - name: ghcr-creds
+      containers:
+        - name: core-api
+          image: ghcr.io/flotio-dev/core-api:7.1
+          env:
+            - name: KUBECTL_API
+              value: https://kubernetes.default.svc
+            - name: KUBECTL_TOKEN
+              value: eyJhbGciOiJSUzI1NiIsImtpZCI6IkxWWkNJcmRHS2IxcDVDZWNjeFNhdFgyN0lySnBnU1Jmd0VGajc1dC1ocDQifQ.eyJpc3MiOiJrdWJlcm5ldGVzL3NlcnZpY2VhY2NvdW50Iiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9uYW1lc3BhY2UiOiJhbmRyb2lkLWJ1aWxkIiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9zZWNyZXQubmFtZSI6ImFuZHJvaWQtYnVpbGRlci10b2tlbiIsImt1YmVybmV0ZXMuaW8vc2VydmljZWFjY291bnQvc2VydmljZS1hY2NvdW50Lm5hbWUiOiJhbmRyb2lkLWJ1aWxkZXIiLCJrdWJlcm5ldGVzLmlvL3NlcnZpY2VhY2NvdW50L3NlcnZpY2UtYWNjb3VudC51aWQiOiJlMTk1MjAyNC04ODc4LTQ5Y2EtYTE4OS05YzJiN2EyMjUwMzEiLCJzdWIiOiJzeXN0ZW06c2VydmljZWFjY291bnQ6YW5kcm9pZC1idWlsZDphbmRyb2lkLWJ1aWxkZXIifQ.VU5fyRRzzUmSehMS-je4vAe-x2azHqqUbFcdVQyCsmh43BuFYaZ9D62tAKF_SfAN629t0ydgwOLVDisBDXjxWR49g0PwcM__MxkMHMFKMxasqKBn892m_aYMw0cjch3NdgF50s9JxrWpRvxmrQBOeCCRJ7duW9S9kPBB-r5IWb3Qpwm80ngu5uzMzFTCDc0BW3j6pEXnxs27RZA6tnuIYl6wgmgMu4hLWqnYWJ8W-0wFw9bvDpZmSo8k7j7Q5zImPqknwDT5zpQrfdk6kefzfubEECHAf2IOMPgX8IR0Dgcu9u0aLTEyg-6YsfEDhOzbHYARALWjzVAqni1Tp9oJUw
+
+            - name: K8S_NAMESPACE
+              value: "android-build"
+
+            - name: API_PORT
+              value: "8080"
+            - name: DATABASE_URL
+              value: postgres://flotio:flotio@postgres-prod:5432/flotio?sslmode=disable
+
+            - name: GITHUB_WEBHOOK_SECRET
+              value: supersecret1234!
+
+            - name: GITHUB_APP_ID
+              value: "2403932"
+
+            - name: GITHUB_APP_PRIVATE_KEY_PATH
+              value: /secrets/github-app-private-key/key
+
+            - name: FLUTTER_BUILD_IMAGE
+              value: ghcr.io/flotio-dev/flutter-build:latest
+
+            - name: AWS_S3_BUCKET
+              value: test
+
+            - name: ACCESS_TOKEN_SECRET
+              value: daca685d335190f8ed65c6d0dc07142fa75a35d449ba1b774b4e687c0ee10898
+            - name: REFRESH_TOKEN_SECRET
+              value: 175de9b9b5a2f8a4982ef3c18e344acbf60fdae32d11844e97e7bc54421a1ab1
+
+            - name: REDIS_ADDR
+              value: redis-prod:6379
+            - name: REDIS_DB
+              value: "0"
+            - name: REDIS_PASSWORD
+              value: ""
+              
+            - name: AWS_S3_PREFIX
+              value: builds
+            - name: AWS_S3_ENDPOINT
+              value: https://s3.flotio.ovh/
+            - name: AWS_REGION
+              value: garage
+            - name: AWS_ACCESS_KEY_ID
+              value: GK40c43fa7757d37e0be33db20
+            - name: AWS_SECRET_ACCESS_KEY
+              value: 307a941ac411120a0e8f096fb9e16cbce77734901cc70f6250ac41315d5d7dc8
+
+            - name: ALLOWED_ORIGINS
+              value: "https://flotio.ovh,https://app.flotio.ovh,https://api.flotio.ovh"
+
+          resources:
+            limits:
+              memory: "512Mi"
+              cpu: "1000m"
+            requests:
+              memory: "256Mi"
+              cpu: "200m"
+          ports:
+            - containerPort: 8080
+          volumeMounts:
+            - name: github-app-private-key
+              mountPath: /secrets/github-app-private-key
+              readOnly: true
+      volumes:
+        - name: github-app-private-key
+          configMap:
+            name: github-app-private-key

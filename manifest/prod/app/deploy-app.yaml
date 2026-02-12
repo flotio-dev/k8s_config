@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app
+  namespace: prod
+  labels:
+    app: app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: app
+  template:
+    metadata:
+      labels:
+        app: app
+    spec:
+      imagePullSecrets:
+        - name: ghcr-creds
+      containers:
+        - name: app
+          image: ghcr.io/flotio-dev/app:latest
+          env:
+            - name: NEXT_PUBLIC_API_BASE_URL
+              value: https://api.flotio.ovh
+            - name: NEXTAUTH_URL
+              value: https://app.flotio.ovh
+          resources:
+            limits:
+              memory: "256Mi"
+              cpu: "1000m"
+            requests:
+              memory: "128Mi"
+              cpu: "500m"
+          ports:
+            - containerPort: 3000
