@@ -70,7 +70,7 @@ spec:
               value: 307a941ac411120a0e8f096fb9e16cbce77734901cc70f6250ac41315d5d7dc8
 
             - name: ALLOWED_ORIGINS
-              value: "https://flotio.ovh,https://app.flotio.ovh,https://api.flotio.ovh,https://dev.flotio.ovh,https://app-dev.flotio.ovh,https://api-dev.flotio.ovh"
+              value: https://flotio.ovh,https://app.flotio.ovh,https://api.flotio.ovh
 
           resources:
             limits:
