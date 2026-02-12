@@ -15,23 +15,23 @@ spec:
       imagePullSecrets:
         - name: ghcr-creds
       containers:
-      - name: website
-        image: ghcr.io/flotio-dev/website:11.7
-        env:
-        - name: NEXT_PUBLIC_API_BASE_URL
-          value: http://api-svc:8080
-        - name: NEXT_PUBLIC_GITHUB_APP
-          value: flotio-app
-        - name: NEXTAUTH_URL
-          value: https://flotio.ovh
-        - name: NEXTAUTH_SECRET
-          value: nextauth-dev-secret-456
-        resources:
-          limits:
-            memory: "256Mi"
-            cpu: "1000m"
-          requests:
-            memory: "128Mi"
-            cpu: "500m"          
-        ports:
-        - containerPort: 3000
+        - name: website
+          image: ghcr.io/flotio-dev/website-next:11.7
+          env:
+            - name: NEXT_PUBLIC_API_BASE_URL
+              value: http://api-svc:8080
+            - name: NEXT_PUBLIC_GITHUB_APP
+              value: flotio-app
+            - name: NEXTAUTH_URL
+              value: https://flotio.ovh
+            - name: NEXTAUTH_SECRET
+              value: nextauth-dev-secret-456
+          resources:
+            limits:
+              memory: "256Mi"
+              cpu: "1000m"
+            requests:
+              memory: "128Mi"
+              cpu: "500m"
+          ports:
+            - containerPort: 3000

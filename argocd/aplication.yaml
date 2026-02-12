@@ -1,0 +1,120 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: app-website
+  namespace: argocd
+  annotations:
+    # Annotations utilisées par Argo Image Updater (voir section 5)
+    argocd-image-updater.argoproj.io/image-list: website=ghcr.io/flotio-dev/website
+    argocd-image-updater.argoproj.io/website.update-strategy: digest
+    argocd-image-updater.argoproj.io/website.pull-secret: pullsecret:dev/ghcr-creds
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/flotio-dev/k8s_config.git
+    targetRevision: main
+    path: manifest/dev/website/
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: dev
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: app-core-api
+  namespace: argocd
+  annotations:
+    # Annotations utilisées par Argo Image Updater (voir section 5)
+    argocd-image-updater.argoproj.io/image-list: core-api=ghcr.io/flotio-dev/core-api/core-api
+    argocd-image-updater.argoproj.io/core-api.update-strategy: digest
+    argocd-image-updater.argoproj.io/core-api.pull-secret: pullsecret:dev/ghcr-creds
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/flotio-dev/k8s_config.git
+    targetRevision: main
+    path: manifest/dev/core-api/
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: dev
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: dev-app
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/flotio-dev/k8s_config.git
+    targetRevision: main
+    path: manifest/dev/app
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: dev
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: dev-postgres
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/flotio-dev/k8s_config.git
+    targetRevision: main
+    path: manifest/dev/db
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: dev
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: dev-redis
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/flotio-dev/k8s_config.git
+    targetRevision: main
+    path: manifest/dev/redis
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: dev
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

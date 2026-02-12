@@ -96,7 +96,7 @@ jobs:
         with:
           context: .
           push: true
-          tags: ghcr.io/${{ github.repository }}:${{ steps.version.outputs.version }}
+          tags: ghcr.io/${{ github.repository_owner }}/website-next:${{ steps.version.outputs.version }}
 
   update-gitops:
     needs: build
@@ -127,7 +127,7 @@ jobs:
             FILE="manifest/dev/website/deploy-front.yaml"
           fi
 
-          sed -i "s|image: .*|image: ghcr.io/${{ github.repository }}:${{ needs.build.outputs.version }}|g" $FILE
+          sed -i "s|image: .*|image: ghcr.io/${{ github.repository_owner }}/website-next:${{ needs.build.outputs.version }}|g" $FILE
 
       - name: Commit & push
         run: |
