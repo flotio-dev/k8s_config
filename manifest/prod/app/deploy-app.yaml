@@ -21,9 +21,9 @@ spec:
         - name: app
           image: ghcr.io/flotio-dev/app:1.0
           env:
-            - name: NEXT_PUBLIC_API_BASE_URL
+            - name: NEXT_PUBLIC_API_URL
               value: https://api.flotio.ovh
-            - name: NEXTAUTH_URL
+            - name: NEXT_PUBLIC_APP_URL
               value: https://app.flotio.ovh
           resources:
             limits:
