@@ -16,10 +16,11 @@ spec:
         app: app
     spec:
       imagePullSecrets:
-        - name: ghcr-creds
+        - name: ghcr-secret
       containers:
         - name: app
-          image: ghcr.io/flotio-dev/app:latest
+          image: ghcr.io/flotio-dev/app:1.0
+
           env:
             - name: NEXT_PUBLIC_API_BASE_URL
               value: https://api.flotio.ovh

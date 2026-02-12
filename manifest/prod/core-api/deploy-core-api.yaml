@@ -13,7 +13,7 @@ spec:
         app: core-api
     spec:
       imagePullSecrets:
-        - name: ghcr-creds
+        - name: ghcr-secret
       containers:
         - name: core-api
           image: ghcr.io/flotio-dev/core-api:7.1
