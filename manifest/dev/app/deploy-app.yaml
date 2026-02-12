@@ -19,7 +19,7 @@ spec:
         - name: ghcr-creds
       containers:
         - name: app
-          image: ghcr.io/flotio-dev/app:1.0
+          image: ghcr.io/flotio-dev/app:2.1
           env:
             - name: NEXT_PUBLIC_API_BASE_URL
               value: https://api-dev.flotio.ovh
