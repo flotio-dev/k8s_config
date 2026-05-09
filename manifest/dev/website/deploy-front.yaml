@@ -13,7 +13,7 @@ spec:
         app: website
     spec:
       imagePullSecrets:
-        - name: ghcr-creds
+        - name: ghcr-secret
       containers:
         - name: website
           image: ghcr.io/flotio-dev/website-next:4.1

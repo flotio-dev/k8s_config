@@ -16,7 +16,7 @@ spec:
         app: app
     spec:
       imagePullSecrets:
-        - name: ghcr-creds
+        - name: ghcr-secret
       containers:
         - name: app
           image: ghcr.io/flotio-dev/app:9.1
