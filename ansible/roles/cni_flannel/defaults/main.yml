@@ -1,0 +1,2 @@
+---
+flannel_namespace: "{{ lookup('ansible.builtin.env', 'FLANNEL_NAMESPACE') | default('kube-flannel', true) }}"

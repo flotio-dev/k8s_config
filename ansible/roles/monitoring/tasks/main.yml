@@ -1,0 +1,168 @@
+---
+- name: Copy monitoring namespace manifest
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/../manifest/monitoring/base/namespace.yaml"
+    dest: /tmp/monitoring-namespace.yaml
+    mode: "0644"
+  when: monitoring_enabled
+
+- name: Ensure monitoring namespace manifest is applied
+  ansible.builtin.command: kubectl apply -f /tmp/monitoring-namespace.yaml
+  environment:
+    KUBECONFIG: /etc/kubernetes/admin.conf
+  register: monitoring_namespace_apply
+  changed_when: "'created' in monitoring_namespace_apply.stdout or 'configured' in monitoring_namespace_apply.stdout"
+  when: monitoring_enabled
+
+- name: Check if Helm is installed
+  ansible.builtin.command: helm version --short
+  register: monitoring_helm_version
+  changed_when: false
+  failed_when: false
+  when:
+    - monitoring_enabled
+    - monitoring_install_helm
+
+- name: Download Helm signing key
+  ansible.builtin.get_url:
+    url: https://packages.buildkite.com/helm-linux/helm-debian/gpgkey
+    dest: /tmp/helm-signing.asc
+    mode: "0644"
+  when:
+    - monitoring_enabled
+    - monitoring_install_helm
+    - monitoring_helm_version.rc != 0
+
+- name: Install Helm apt keyring
+  ansible.builtin.command:
+    cmd: "gpg --dearmor -o {{ monitoring_helm_keyring }} /tmp/helm-signing.asc"
+    creates: "{{ monitoring_helm_keyring }}"
+  when:
+    - monitoring_enabled
+    - monitoring_install_helm
+    - monitoring_helm_version.rc != 0
+
+- name: Configure Helm apt repository
+  ansible.builtin.copy:
+    dest: "{{ monitoring_helm_repo_file }}"
+    mode: "0644"
+    content: |
+      deb [signed-by={{ monitoring_helm_keyring }}] https://packages.buildkite.com/helm-linux/helm-debian/any/ any main
+  register: monitoring_helm_repo
+  when:
+    - monitoring_enabled
+    - monitoring_install_helm
+    - monitoring_helm_version.rc != 0
+
+- name: Install Helm
+  ansible.builtin.apt:
+    name: "{{ monitoring_helm_package_name }}"
+    state: present
+    update_cache: true
+  when:
+    - monitoring_enabled
+    - monitoring_install_helm
+
+- name: Add Helm repositories
+  ansible.builtin.command: helm repo add {{ item.name }} {{ item.url }} --force-update
+  loop: "{{ monitoring_helm_repositories }}"
+  register: monitoring_helm_repo_add
+  changed_when: false
+  when: monitoring_enabled
+
+- name: Update Helm repositories
+  ansible.builtin.command: helm repo update
+  changed_when: false
+  when: monitoring_enabled
+
+- name: Copy Helm values files
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/{{ item.values_file }}"
+    dest: "/tmp/{{ item.name }}-values.yaml"
+    mode: "0644"
+  loop: "{{ monitoring_helm_releases }}"
+  when: monitoring_enabled
+
+- name: Install or upgrade monitoring Helm releases
+  ansible.builtin.command: >-
+    helm upgrade --install {{ item.name }} {{ item.chart }}
+    --namespace {{ item.namespace }}
+    --create-namespace
+    -f /tmp/{{ item.name }}-values.yaml
+    {% if item.wait | default(true) %}--wait{% endif %}
+    --timeout {{ item.timeout | default('10m') }}
+  loop: "{{ monitoring_helm_releases }}"
+  register: monitoring_helm_upgrade
+  changed_when: "'has been installed' in monitoring_helm_upgrade.stdout or 'has been upgraded' in monitoring_helm_upgrade.stdout"
+  when: monitoring_enabled
+
+- name: Copy monitoring manifests
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/{{ item }}"
+    dest: "/tmp/{{ item | basename }}"
+    mode: "0644"
+  loop: "{{ monitoring_manifest_files }}"
+  when: monitoring_enabled
+
+- name: Apply monitoring manifests
+  ansible.builtin.command: kubectl apply -f /tmp/{{ item | basename }}
+  environment:
+    KUBECONFIG: /etc/kubernetes/admin.conf
+  loop: "{{ monitoring_manifest_files }}"
+  register: monitoring_manifest_apply
+  changed_when: "'created' in monitoring_manifest_apply.stdout or 'configured' in monitoring_manifest_apply.stdout"
+  when: monitoring_enabled
+
+- name: Check if Proxmox exporter secret exists
+  ansible.builtin.command: kubectl -n {{ monitoring_namespace }} get secret pve-exporter
+  environment:
+    KUBECONFIG: /etc/kubernetes/admin.conf
+  register: monitoring_pve_secret
+  changed_when: false
+  failed_when: false
+  when:
+    - monitoring_enabled
+    - monitoring_apply_pve_exporter
+
+- name: Copy Proxmox PVE exporter manifest
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/{{ monitoring_pve_exporter_manifest }}"
+    dest: "/tmp/{{ monitoring_pve_exporter_manifest | basename }}"
+    mode: "0644"
+  when:
+    - monitoring_enabled
+    - monitoring_apply_pve_exporter
+    - monitoring_pve_secret.rc == 0
+
+- name: Apply Proxmox PVE exporter
+  ansible.builtin.command: kubectl apply -f /tmp/{{ monitoring_pve_exporter_manifest | basename }}
+  environment:
+    KUBECONFIG: /etc/kubernetes/admin.conf
+  register: monitoring_pve_exporter_apply
+  changed_when: "'created' in monitoring_pve_exporter_apply.stdout or 'configured' in monitoring_pve_exporter_apply.stdout"
+  when:
+    - monitoring_enabled
+    - monitoring_apply_pve_exporter
+    - monitoring_pve_secret.rc == 0
+
+- name: Explain skipped Proxmox PVE exporter
+  ansible.builtin.debug:
+    msg: "Skipping pve-exporter because secret monitoring/pve-exporter does not exist yet."
+  when:
+    - monitoring_enabled
+    - monitoring_apply_pve_exporter
+    - monitoring_pve_secret.rc != 0
+
+- name: Wait for OpenTelemetry gateway
+  ansible.builtin.command: kubectl -n {{ monitoring_namespace }} rollout status deployment/otel-collector-gateway --timeout={{ monitoring_wait_timeout }}
+  environment:
+    KUBECONFIG: /etc/kubernetes/admin.conf
+  changed_when: false
+  when: monitoring_enabled
+
+- name: Wait for OpenTelemetry logs daemonset
+  ansible.builtin.command: kubectl -n {{ monitoring_namespace }} rollout status daemonset/otel-collector-logs --timeout={{ monitoring_wait_timeout }}
+  environment:
+    KUBECONFIG: /etc/kubernetes/admin.conf
+  changed_when: false
+  when: monitoring_enabled

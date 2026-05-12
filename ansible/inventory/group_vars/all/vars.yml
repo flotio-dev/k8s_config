@@ -1,0 +1,208 @@
+---
+project_name: "{{ lookup('ansible.builtin.env', 'PROJECT_NAME') | default('flotio', true) }}"
+env_name: "{{ lookup('ansible.builtin.env', 'ENV_NAME') | default('prod', true) }}"
+timezone: "{{ lookup('ansible.builtin.env', 'TIMEZONE') |
+  default('Europe/Paris', true) }}"
+
+kubernetes_version: "{{ lookup('ansible.builtin.env', 'KUBERNETES_VERSION') |
+  default('1.35', true) }}"
+kubernetes_kubeadm_version: "{{ lookup('ansible.builtin.env',
+  'KUBERNETES_KUBEADM_VERSION') | default('stable-' ~ kubernetes_version, true)
+  }}"
+kubernetes_pod_cidr: "{{ lookup('ansible.builtin.env', 'KUBERNETES_POD_CIDR') |
+  default('10.244.0.0/16', true) }}"
+kubernetes_service_cidr: "{{ lookup('ansible.builtin.env',
+  'KUBERNETES_SERVICE_CIDR') | default('10.96.0.0/12', true) }}"
+kubernetes_api_endpoint: "{{ hostvars[groups['control_plane'][0]].ansible_host }}"
+
+containerd_config_path: /etc/containerd/config.toml
+containerd_systemd_cgroup: true
+containerd_cni_bin_dir: /opt/cni/bin
+containerd_cni_conf_dir: /etc/cni/net.d
+
+cni_plugin: flannel
+flannel_namespace: "{{ lookup('ansible.builtin.env', 'FLANNEL_NAMESPACE') |
+  default('kube-flannel', true) }}"
+flannel_version: "{{ lookup('ansible.builtin.env', 'FLANNEL_VERSION') |
+  default('0.26.5', true) }}"
+flannel_manifest_url: "https://github.com/flannel-io/flannel/releases/download/\
+  v{{ flannel_version }}/kube-flannel.yml"
+
+metallb_enabled: "{{ lookup('ansible.builtin.env', 'METALLB_ENABLED') |
+  default('true', true) | bool }}"
+metallb_namespace: "{{ lookup('ansible.builtin.env', 'METALLB_NAMESPACE') |
+  default('metallb-system', true) }}"
+metallb_version: "{{ lookup('ansible.builtin.env', 'METALLB_VERSION') |
+  default('0.14.9', true) }}"
+metallb_manifest_url: "https://raw.githubusercontent.com/metallb/metallb/v{{
+  metallb_version }}/config/manifests/metallb-native.yaml"
+metallb_pool_name: "{{ lookup('ansible.builtin.env', 'METALLB_POOL_NAME') |
+  default('gpe-pool', true) }}"
+metallb_l2_advertisement_name: "{{ lookup('ansible.builtin.env',
+  'METALLB_L2_ADVERTISEMENT_NAME') | default('gpe-l2', true) }}"
+metallb_addresses: "{{ (lookup('ansible.builtin.env', 'METALLB_ADDRESSES') |
+  default('192.168.1.230-192.168.1.245', true)).split(',') }}"
+
+longhorn_enabled: "{{ lookup('ansible.builtin.env', 'LONGHORN_ENABLED') |
+  default('true', true) | bool }}"
+longhorn_namespace: "{{ lookup('ansible.builtin.env', 'LONGHORN_NAMESPACE') |
+  default('longhorn-system', true) }}"
+longhorn_version: "{{ lookup('ansible.builtin.env', 'LONGHORN_VERSION') |
+  default('1.11.1', true) }}"
+longhorn_manifest_url: "https://raw.githubusercontent.com/longhorn/longhorn/v{{
+  longhorn_version }}/deploy/longhorn.yaml"
+longhorn_wait_timeout: "{{ lookup('ansible.builtin.env',
+  'LONGHORN_WAIT_TIMEOUT') | default('600s', true) }}"
+longhorn_required_packages:
+  - open-iscsi
+  - nfs-common
+
+ghcr_pull_secret_enabled: "{{ lookup('ansible.builtin.env',
+  'GHCR_PULL_SECRET_ENABLED') | default('true', true) | bool }}"
+ghcr_registry: "{{ lookup('ansible.builtin.env', 'GHCR_REGISTRY') |
+  default('ghcr.io', true) }}"
+ghcr_username: "{{ lookup('ansible.builtin.env', 'GHCR_USERNAME') |
+  default('', true) }}"
+ghcr_token: "{{ lookup('ansible.builtin.env', 'GHCR_TOKEN') |
+  default('', true) }}"
+ghcr_email: "{{ lookup('ansible.builtin.env', 'GHCR_EMAIL') |
+  default('', true) }}"
+ghcr_secret_name: "{{ lookup('ansible.builtin.env', 'GHCR_SECRET_NAME') |
+  default('ghcr-secret', true) }}"
+ghcr_secret_namespaces: "{{ (lookup('ansible.builtin.env',
+  'GHCR_SECRET_NAMESPACES') | default('dev,prod', true)).split(',') |
+  map('trim') | reject('equalto', '') | list }}"
+
+android_build_enabled: "{{ lookup('ansible.builtin.env',
+  'ANDROID_BUILD_ENABLED') | default('true', true) | bool }}"
+android_build_namespace: "{{ lookup('ansible.builtin.env',
+  'ANDROID_BUILD_NAMESPACE') | default('android-build', true) }}"
+android_build_service_account_token_secret: "{{ lookup('ansible.builtin.env',
+  'ANDROID_BUILD_SERVICE_ACCOUNT_TOKEN_SECRET') |
+  default('android-builder-token', true) }}"
+android_build_core_api_token_secret: "{{ lookup('ansible.builtin.env',
+  'ANDROID_BUILD_CORE_API_TOKEN_SECRET') |
+  default('core-api-k8s-token', true) }}"
+android_build_token_target_namespaces: "{{ (lookup('ansible.builtin.env',
+  'ANDROID_BUILD_TOKEN_TARGET_NAMESPACES') | default('dev,prod', true)).split(',')
+  | map('trim') | reject('equalto', '') | list }}"
+android_build_manifest_files:
+  - "../manifest/build/android/namespace.yaml"
+  - "../manifest/build/android/sa.yaml"
+  - "../manifest/build/android/Role.yaml"
+  - "../manifest/build/android/RoleBinding.yaml"
+  - "../manifest/build/android/secret.yaml"
+
+ingress_nginx_enabled: "{{ lookup('ansible.builtin.env',
+  'INGRESS_NGINX_ENABLED') | default('true', true) | bool }}"
+ingress_nginx_namespace: "{{ lookup('ansible.builtin.env',
+  'INGRESS_NGINX_NAMESPACE') | default('ingress-nginx', true) }}"
+ingress_nginx_version: "{{ lookup('ansible.builtin.env',
+  'INGRESS_NGINX_VERSION') | default('1.12.1', true) }}"
+ingress_nginx_manifest_url: "https://raw.githubusercontent.com/kubernetes/ingre\
+  ss-nginx/controller-v{{ ingress_nginx_version
+  }}/deploy/static/provider/cloud/deploy.yaml"
+
+cert_manager_enabled: "{{ lookup('ansible.builtin.env', 'CERT_MANAGER_ENABLED')
+  | default('true', true) | bool }}"
+cert_manager_namespace: "{{ lookup('ansible.builtin.env',
+  'CERT_MANAGER_NAMESPACE') | default('cert-manager', true) }}"
+cert_manager_version: "{{ lookup('ansible.builtin.env', 'CERT_MANAGER_VERSION')
+  | default('1.17.2', true) }}"
+cert_manager_manifest_url: "https://github.com/cert-manager/cert-manager/releas\
+  es/download/v{{ cert_manager_version }}/cert-manager.yaml"
+cert_manager_issuers:
+  - name: letsencrypt-staging
+    email: "{{ lookup('ansible.builtin.env', 'CERT_MANAGER_EMAIL') |
+      default('clain_b@etna-alternance.net', true) }}"
+    server: https://acme-staging-v02.api.letsencrypt.org/directory
+    private_key_secret_name: le-staging-account-key
+    ingress_class: nginx
+  - name: letsencrypt-prod
+    email: "{{ lookup('ansible.builtin.env', 'CERT_MANAGER_EMAIL') |
+      default('clain_b@etna-alternance.net', true) }}"
+    server: https://acme-v02.api.letsencrypt.org/directory
+    private_key_secret_name: le-prod-account-key
+    ingress_class: nginx
+
+argocd_enabled: "{{ lookup('ansible.builtin.env', 'ARGOCD_ENABLED') |
+  default('true', true) | bool }}"
+argocd_namespace: "{{ lookup('ansible.builtin.env', 'ARGOCD_NAMESPACE') |
+  default('argocd', true) }}"
+argocd_version: "{{ lookup('ansible.builtin.env', 'ARGOCD_VERSION') |
+  default('2.14.4', true) }}"
+argocd_manifest_url: "https://raw.githubusercontent.com/argoproj/argo-cd/v{{
+  argocd_version }}/manifests/install.yaml"
+argocd_application_files:
+  - "../argocd/aplication.yaml"
+  - "../argocd/applications-prod.yaml"
+
+monitoring_enabled: "{{ lookup('ansible.builtin.env', 'MONITORING_ENABLED') |
+  default('true', true) | bool }}"
+monitoring_namespace: "{{ lookup('ansible.builtin.env', 'MONITORING_NAMESPACE')
+  | default('monitoring', true) }}"
+monitoring_install_helm: "{{ lookup('ansible.builtin.env',
+  'MONITORING_INSTALL_HELM') | default('true', true) | bool }}"
+monitoring_helm_keyring: /usr/share/keyrings/helm.gpg
+monitoring_helm_repo_file: /etc/apt/sources.list.d/helm-stable-debian.list
+monitoring_helm_repositories:
+  - name: prometheus-community
+    url: https://prometheus-community.github.io/helm-charts
+  - name: grafana
+    url: https://grafana.github.io/helm-charts
+monitoring_helm_releases:
+  - name: monitoring
+    chart: prometheus-community/kube-prometheus-stack
+    namespace: "{{ monitoring_namespace }}"
+    values_file: "../manifest/monitoring/helm-values/kube-prometheus-stack-values.yaml"
+    wait: true
+    timeout: 10m
+  - name: loki
+    chart: grafana/loki
+    namespace: "{{ monitoring_namespace }}"
+    values_file: "../manifest/monitoring/helm-values/loki-values.yaml"
+    wait: true
+    timeout: 10m
+  - name: tempo
+    chart: grafana/tempo
+    namespace: "{{ monitoring_namespace }}"
+    values_file: "../manifest/monitoring/helm-values/tempo-values.yaml"
+    wait: true
+    timeout: 10m
+monitoring_manifest_files:
+  - "../manifest/monitoring/opentelemetry/otel-collector-gateway.yaml"
+  - "../manifest/monitoring/logs/otel-collector-logs-daemonset.yaml"
+  - "../manifest/monitoring/apm/prometheus-rules.yaml"
+  - "../manifest/monitoring/proxmox/proxmox-node-exporter.yaml"
+monitoring_apply_pve_exporter: "{{ lookup('ansible.builtin.env',
+  'MONITORING_APPLY_PVE_EXPORTER') | default('false', true) | bool }}"
+monitoring_pve_exporter_manifest: "../manifest/monitoring/proxmox/pve-exporter.yaml"
+monitoring_wait_timeout: "{{ lookup('ansible.builtin.env',
+  'MONITORING_WAIT_TIMEOUT') | default('300s', true) }}"
+
+common_packages:
+  - sudo
+  - curl
+  - apt-transport-https
+  - ca-certificates
+  - software-properties-common
+  - gpg
+  - conntrack
+  - iptables
+  - iproute2
+  - ethtool
+  - gnupg
+
+kubernetes_packages:
+  - kubelet
+  - kubeadm
+  - kubectl
+
+kernel_modules:
+  - overlay
+  - br_netfilter
+
+kubernetes_sysctl:
+  net.bridge.bridge-nf-call-iptables: "1"
+  net.bridge.bridge-nf-call-ip6tables: "1"
+  net.ipv4.ip_forward: "1"

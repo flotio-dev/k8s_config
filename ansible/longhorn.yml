@@ -1,0 +1,86 @@
+---
+- name: Prepare nodes for Longhorn
+  hosts: all
+  become: true
+  roles:
+    - role: longhorn
+      tags: [longhorn, longhorn_prereqs]
+
+- name: Install Longhorn after Kubernetes networking is stable
+  hosts: control_plane
+  become: true
+  pre_tasks:
+    - name: Wait for Kubernetes API readiness
+      ansible.builtin.command: kubectl --kubeconfig=/etc/kubernetes/admin.conf get --raw=/readyz
+      register: longhorn_api_ready
+      changed_when: false
+      retries: 30
+      delay: 10
+      until: longhorn_api_ready.rc == 0
+      when: longhorn_enabled
+
+    - name: Wait for all nodes to be Ready
+      ansible.builtin.command: kubectl wait --for=condition=Ready nodes --all --timeout=300s
+      environment:
+        KUBECONFIG: /etc/kubernetes/admin.conf
+      changed_when: false
+      when: longhorn_enabled
+
+    - name: Wait for Flannel on every node
+      ansible.builtin.command: kubectl -n {{ flannel_namespace }} rollout status daemonset/kube-flannel-ds --timeout=300s
+      environment:
+        KUBECONFIG: /etc/kubernetes/admin.conf
+      changed_when: false
+      when: longhorn_enabled
+
+  tasks:
+    - name: Install Longhorn manifests
+      ansible.builtin.command: kubectl apply -f {{ longhorn_manifest_url }}
+      environment:
+        KUBECONFIG: /etc/kubernetes/admin.conf
+      register: longhorn_apply
+      changed_when: "'created' in longhorn_apply.stdout or 'configured' in longhorn_apply.stdout"
+      when: longhorn_enabled
+
+    - name: Wait for Longhorn namespace
+      ansible.builtin.command: kubectl get namespace {{ longhorn_namespace }}
+      environment:
+        KUBECONFIG: /etc/kubernetes/admin.conf
+      register: longhorn_namespace_ready
+      changed_when: false
+      retries: 12
+      delay: 5
+      until: longhorn_namespace_ready.rc == 0
+      when: longhorn_enabled
+
+    - name: Wait for Longhorn manager on every node
+      ansible.builtin.command: kubectl -n {{ longhorn_namespace }} rollout status daemonset/longhorn-manager --timeout={{ longhorn_wait_timeout }}
+      environment:
+        KUBECONFIG: /etc/kubernetes/admin.conf
+      changed_when: false
+      when: longhorn_enabled
+
+    - name: Wait for Longhorn driver deployer
+      ansible.builtin.command: kubectl -n {{ longhorn_namespace }} rollout status deployment/longhorn-driver-deployer --timeout={{ longhorn_wait_timeout }}
+      environment:
+        KUBECONFIG: /etc/kubernetes/admin.conf
+      changed_when: false
+      when: longhorn_enabled
+
+    - name: Wait for Longhorn UI
+      ansible.builtin.command: kubectl -n {{ longhorn_namespace }} rollout status deployment/longhorn-ui --timeout={{ longhorn_wait_timeout }}
+      environment:
+        KUBECONFIG: /etc/kubernetes/admin.conf
+      changed_when: false
+      when: longhorn_enabled
+
+    - name: Wait for Longhorn storage class
+      ansible.builtin.command: kubectl get storageclass longhorn
+      environment:
+        KUBECONFIG: /etc/kubernetes/admin.conf
+      register: longhorn_storageclass
+      changed_when: false
+      retries: 30
+      delay: 10
+      until: longhorn_storageclass.rc == 0
+      when: longhorn_enabled

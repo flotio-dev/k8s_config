@@ -1,0 +1,101 @@
+---
+- name: Check if control plane is already initialized
+  ansible.builtin.stat:
+    path: /etc/kubernetes/admin.conf
+  register: kubeadm_admin_conf
+
+- name: Initialize Kubernetes control plane
+  ansible.builtin.command:
+    cmd: >-
+      kubeadm init
+      --kubernetes-version={{ kubernetes_kubeadm_version }}
+      --pod-network-cidr={{ kubernetes_pod_cidr }}
+      --service-cidr={{ kubernetes_service_cidr }}
+      --apiserver-advertise-address={{ kubernetes_api_endpoint }}
+    creates: /etc/kubernetes/admin.conf
+  register: kubeadm_init
+  when: not kubeadm_admin_conf.stat.exists
+
+- name: Ensure kubeconfig directory exists for SSH user
+  ansible.builtin.file:
+    path: "/home/{{ kubeconfig_owner }}/.kube"
+    state: directory
+    owner: "{{ kubeconfig_owner }}"
+    group: "{{ kubeconfig_group }}"
+    mode: "0700"
+  when: kubeconfig_owner != "root"
+
+- name: Copy admin kubeconfig for SSH user
+  ansible.builtin.copy:
+    src: /etc/kubernetes/admin.conf
+    dest: "/home/{{ kubeconfig_owner }}/.kube/config"
+    owner: "{{ kubeconfig_owner }}"
+    group: "{{ kubeconfig_group }}"
+    mode: "0600"
+    remote_src: true
+  when: kubeconfig_owner != "root"
+
+- name: Ensure root kubeconfig directory exists
+  ansible.builtin.file:
+    path: /root/.kube
+    state: directory
+    mode: "0700"
+
+- name: Copy admin kubeconfig for root
+  ansible.builtin.copy:
+    src: /etc/kubernetes/admin.conf
+    dest: /root/.kube/config
+    mode: "0600"
+    remote_src: true
+
+- name: Wait for Kubernetes API readiness
+  ansible.builtin.command: kubectl --kubeconfig=/etc/kubernetes/admin.conf get --raw=/readyz
+  register: kubernetes_api_ready
+  changed_when: false
+  retries: 30
+  delay: 10
+  until: kubernetes_api_ready.rc == 0
+
+- name: Find existing bootstrap token
+  ansible.builtin.shell: |
+    set -o pipefail
+    kubeadm token list \
+      | awk 'NR > 1 && $1 ~ /^[a-z0-9]{6}\.[a-z0-9]{16}$/ { print $1; exit }'
+  args:
+    executable: /bin/bash
+  register: kubeadm_existing_token
+  changed_when: false
+
+- name: Create bootstrap token when missing
+  ansible.builtin.command: kubeadm token create --ttl {{ kubernetes_join_token_ttl }}
+  register: kubeadm_created_token
+  changed_when: false
+  retries: 6
+  delay: 10
+  until: kubeadm_created_token.rc == 0
+  when: kubeadm_existing_token.stdout | length == 0
+
+- name: Calculate discovery token CA cert hash
+  ansible.builtin.shell: |
+    set -o pipefail
+    openssl x509 -pubkey -in /etc/kubernetes/pki/ca.crt \
+      | openssl rsa -pubin -outform der 2>/dev/null \
+      | openssl dgst -sha256 -hex \
+      | awk '{ print $NF }'
+  args:
+    executable: /bin/bash
+  register: kubeadm_discovery_hash
+  changed_when: false
+
+- name: Build worker join command
+  ansible.builtin.set_fact:
+    kubeadm_join_command:
+      stdout: >-
+        kubeadm join {{ kubernetes_api_endpoint }}:6443
+        --token {{ kubeadm_existing_token.stdout | default(kubeadm_created_token.stdout, true) }}
+        --discovery-token-ca-cert-hash sha256:{{ kubeadm_discovery_hash.stdout }}
+
+- name: Share worker join command with play
+  ansible.builtin.set_fact:
+    kubernetes_join_command: "{{ kubeadm_join_command.stdout }}"
+    cacheable: true

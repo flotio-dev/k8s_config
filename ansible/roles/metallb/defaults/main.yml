@@ -1,0 +1,2 @@
+---
+metallb_wait_timeout: "{{ lookup('ansible.builtin.env', 'METALLB_WAIT_TIMEOUT') | default('180s', true) }}"

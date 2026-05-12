@@ -1,0 +1,3 @@
+---
+monitoring_helm_package_name: helm
+monitoring_wait_timeout: "{{ lookup('ansible.builtin.env', 'MONITORING_WAIT_TIMEOUT') | default('300s', true) }}"

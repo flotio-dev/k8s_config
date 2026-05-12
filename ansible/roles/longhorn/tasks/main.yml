@@ -1,0 +1,23 @@
+---
+- name: Install Longhorn node prerequisites
+  ansible.builtin.apt:
+    name: "{{ longhorn_required_packages }}"
+    state: present
+    update_cache: true
+  when: longhorn_enabled
+
+- name: Enable and start iSCSI service
+  ansible.builtin.systemd:
+    name: iscsid
+    enabled: true
+    state: started
+  failed_when: false
+  when: longhorn_enabled
+
+- name: Enable and start open-iscsi service
+  ansible.builtin.systemd:
+    name: open-iscsi
+    enabled: true
+    state: started
+  failed_when: false
+  when: longhorn_enabled

@@ -1,0 +1,2 @@
+---
+postflight_node_ready_timeout: "{{ lookup('ansible.builtin.env', 'POSTFLIGHT_NODE_READY_TIMEOUT') | default('300s', true) }}"

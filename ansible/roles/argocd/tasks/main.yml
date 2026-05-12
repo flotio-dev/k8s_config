@@ -1,0 +1,43 @@
+---
+- name: Ensure Argo CD namespace exists
+  ansible.builtin.command: kubectl create namespace {{ argocd_namespace }}
+  environment:
+    KUBECONFIG: /etc/kubernetes/admin.conf
+  register: argocd_namespace_create
+  changed_when: argocd_namespace_create.rc == 0
+  failed_when:
+    - argocd_namespace_create.rc != 0
+    - "'AlreadyExists' not in argocd_namespace_create.stderr"
+  when: argocd_enabled
+
+- name: Install Argo CD
+  ansible.builtin.command: kubectl apply -n {{ argocd_namespace }} -f {{ argocd_manifest_url }}
+  environment:
+    KUBECONFIG: /etc/kubernetes/admin.conf
+  register: argocd_install
+  changed_when: "'created' in argocd_install.stdout or 'configured' in argocd_install.stdout"
+  when: argocd_enabled
+
+- name: Wait for Argo CD API server
+  ansible.builtin.command: kubectl -n {{ argocd_namespace }} rollout status deployment/argocd-server --timeout={{ argocd_wait_timeout }}
+  environment:
+    KUBECONFIG: /etc/kubernetes/admin.conf
+  changed_when: false
+  when: argocd_enabled
+
+- name: Copy Argo CD Application manifests
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/{{ item }}"
+    dest: "/tmp/{{ item | basename }}"
+    mode: "0644"
+  loop: "{{ argocd_application_files }}"
+  when: argocd_enabled
+
+- name: Apply Argo CD Application manifests
+  ansible.builtin.command: "kubectl apply -f /tmp/{{ item | basename }}"
+  environment:
+    KUBECONFIG: /etc/kubernetes/admin.conf
+  loop: "{{ argocd_application_files }}"
+  register: argocd_applications_apply
+  changed_when: "'created' in argocd_applications_apply.stdout or 'configured' in argocd_applications_apply.stdout"
+  when: argocd_enabled

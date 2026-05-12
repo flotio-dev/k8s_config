@@ -1,0 +1,91 @@
+---
+- name: Prepare all Kubernetes nodes
+  hosts: all
+  become: true
+  roles:
+    - role: preflight
+      tags: [preflight]
+    - role: common
+      tags: [common]
+    - role: containerd
+      tags: [containerd]
+  post_tasks:
+    - name: Apply containerd restart before kubeadm bootstrap
+      ansible.builtin.meta: flush_handlers
+      tags: [containerd]
+
+- name: Install Kubernetes packages
+  hosts: all
+  become: true
+  roles:
+    - role: kubernetes_common
+      tags: [kubernetes, kubernetes_common]
+
+- name: Bootstrap Kubernetes control plane
+  hosts: control_plane
+  become: true
+  roles:
+    - role: kubernetes_control_plane
+      tags: [kubernetes, control_plane]
+    - role: cni_flannel
+      tags: [kubernetes, cni, flannel]
+
+- name: Join Kubernetes workers
+  hosts: workers
+  become: true
+  roles:
+    - role: kubernetes_workers
+      tags: [kubernetes, workers]
+
+- name: Wait for cluster networking
+  hosts: control_plane
+  become: true
+  tasks:
+    - name: Wait for Kubernetes API readiness after worker join
+      ansible.builtin.command: kubectl --kubeconfig=/etc/kubernetes/admin.conf get --raw=/readyz
+      register: cluster_api_ready
+      changed_when: false
+      retries: 30
+      delay: 10
+      until: cluster_api_ready.rc == 0
+      tags: [kubernetes, cni]
+
+    - name: Wait for all nodes to be Ready
+      ansible.builtin.command: kubectl wait --for=condition=Ready nodes --all --timeout=300s
+      environment:
+        KUBECONFIG: /etc/kubernetes/admin.conf
+      changed_when: false
+      tags: [kubernetes, cni]
+
+    - name: Wait for Flannel on every node
+      ansible.builtin.command: kubectl -n {{ flannel_namespace }} rollout status daemonset/kube-flannel-ds --timeout=300s
+      environment:
+        KUBECONFIG: /etc/kubernetes/admin.conf
+      changed_when: false
+      tags: [kubernetes, cni, flannel]
+
+- name: Install platform tools
+  hosts: control_plane
+  become: true
+  roles:
+    - role: metallb
+      tags: [tools, metallb]
+    - role: registry_pull_secret
+      tags: [tools, registry, ghcr]
+    - role: android_build
+      tags: [tools, android_build, build]
+    - role: ingress_nginx
+      tags: [tools, ingress]
+    - role: cert_manager
+      tags: [tools, cert_manager]
+    - role: argocd
+      tags: [tools, argocd, gitops]
+    - role: monitoring
+      tags: [tools, monitoring]
+
+- name: Verify cluster state
+  hosts: control_plane
+  become: true
+  roles:
+    - role: postflight
+      tags: [postflight]

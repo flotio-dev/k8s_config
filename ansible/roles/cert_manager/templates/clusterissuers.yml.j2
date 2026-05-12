@@ -1,0 +1,20 @@
+---
+{% for issuer in cert_manager_issuers %}
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: {{ issuer.name }}
+spec:
+  acme:
+    email: {{ issuer.email }}
+    server: {{ issuer.server }}
+    privateKeySecretRef:
+      name: {{ issuer.private_key_secret_name }}
+    solvers:
+      - http01:
+          ingress:
+            class: {{ issuer.ingress_class }}
+{% if not loop.last %}
+---
+{% endif %}
+{% endfor %}

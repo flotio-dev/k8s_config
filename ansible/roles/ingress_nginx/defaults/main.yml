@@ -1,0 +1,2 @@
+---
+ingress_nginx_wait_timeout: "{{ lookup('ansible.builtin.env', 'INGRESS_NGINX_WAIT_TIMEOUT') | default('240s', true) }}"

@@ -1,0 +1,18 @@
+---
+all:
+  vars:
+    ansible_user: ${ansible_user}
+    ansible_python_interpreter: /usr/bin/python3
+  children:
+    control_plane:
+      hosts:
+%{ for host in control_plane_hosts ~}
+        ${host.name}:
+          ansible_host: ${host.ip}
+%{ endfor ~}
+    workers:
+      hosts:
+%{ for host in worker_hosts ~}
+        ${host.name}:
+          ansible_host: ${host.ip}
+%{ endfor ~}

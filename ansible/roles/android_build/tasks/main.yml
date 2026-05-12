@@ -1,0 +1,61 @@
+---
+- name: Copy Android build manifests
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/{{ item }}"
+    dest: "/tmp/{{ item | basename }}"
+    mode: "0644"
+  loop: "{{ android_build_manifest_files }}"
+  when: android_build_enabled
+
+- name: Apply Android build manifests
+  ansible.builtin.command: kubectl apply -f /tmp/{{ item | basename }}
+  environment:
+    KUBECONFIG: /etc/kubernetes/admin.conf
+  loop: "{{ android_build_manifest_files }}"
+  register: android_build_manifest_apply
+  changed_when: "'created' in android_build_manifest_apply.stdout or 'configured' in android_build_manifest_apply.stdout"
+  when: android_build_enabled
+
+- name: Wait for Android builder token to be populated
+  ansible.builtin.command: >-
+    kubectl -n {{ android_build_namespace }} get secret
+    {{ android_build_service_account_token_secret }}
+    -o jsonpath={.data.token}
+  environment:
+    KUBECONFIG: /etc/kubernetes/admin.conf
+  register: android_build_token_data
+  changed_when: false
+  retries: 30
+  delay: 2
+  until: android_build_token_data.stdout | length > 0
+  when: android_build_enabled
+  no_log: true
+
+- name: Ensure core-api namespaces exist for Android build token
+  ansible.builtin.command: kubectl create namespace {{ item }}
+  environment:
+    KUBECONFIG: /etc/kubernetes/admin.conf
+  loop: "{{ android_build_token_target_namespaces }}"
+  register: android_build_target_namespace_create
+  changed_when: android_build_target_namespace_create.rc == 0
+  failed_when:
+    - android_build_target_namespace_create.rc != 0
+    - "'AlreadyExists' not in android_build_target_namespace_create.stderr"
+  when: android_build_enabled
+
+- name: Create or update core-api Kubernetes token secret
+  ansible.builtin.shell: |
+    set -eu
+    token="$(kubectl -n {{ android_build_namespace }} get secret {{ android_build_service_account_token_secret }} -o jsonpath='{.data.token}' | base64 -d)"
+    kubectl -n {{ item }} create secret generic {{ android_build_core_api_token_secret }} \
+      --from-literal=token="${token}" \
+      --dry-run=client -o yaml | kubectl apply -f -
+  args:
+    executable: /bin/bash
+  environment:
+    KUBECONFIG: /etc/kubernetes/admin.conf
+  loop: "{{ android_build_token_target_namespaces }}"
+  register: android_build_core_api_token_apply
+  changed_when: "'created' in android_build_core_api_token_apply.stdout or 'configured' in android_build_core_api_token_apply.stdout"
+  when: android_build_enabled
+  no_log: true

@@ -1,0 +1,13 @@
+---
+- name: Apply Flannel manifest
+  ansible.builtin.command: kubectl apply -f {{ flannel_manifest_url }}
+  environment:
+    KUBECONFIG: /etc/kubernetes/admin.conf
+  register: flannel_apply
+  changed_when: "'created' in flannel_apply.stdout or 'configured' in flannel_apply.stdout"
+
+- name: Wait for Flannel daemonset
+  ansible.builtin.command: kubectl -n {{ flannel_namespace }} rollout status daemonset/kube-flannel-ds --timeout=180s
+  environment:
+    KUBECONFIG: /etc/kubernetes/admin.conf
+  changed_when: false

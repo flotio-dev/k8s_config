@@ -1,0 +1,15 @@
+---
+- name: Check if worker is already joined
+  ansible.builtin.stat:
+    path: "{{ worker_kubelet_conf }}"
+  register: worker_kubelet
+
+- name: Resolve join command from control plane
+  ansible.builtin.set_fact:
+    worker_join_command: "{{ hostvars[groups['control_plane'][0]].kubernetes_join_command }}"
+
+- name: Join worker to cluster
+  ansible.builtin.command: "{{ worker_join_command }}"
+  when: not worker_kubelet.stat.exists
+  register: worker_join
+  changed_when: worker_join.rc == 0

@@ -1,0 +1,6 @@
+---
+preflight_supported_distributions:
+  - Debian
+  - Ubuntu
+preflight_min_memory_mb: 1800
+preflight_min_vcpus: 2

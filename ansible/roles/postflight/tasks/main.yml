@@ -1,0 +1,26 @@
+---
+- name: Wait for nodes to become Ready
+  ansible.builtin.command: kubectl wait --for=condition=Ready nodes --all --timeout={{ postflight_node_ready_timeout }}
+  environment:
+    KUBECONFIG: /etc/kubernetes/admin.conf
+  changed_when: false
+
+- name: Show nodes
+  ansible.builtin.command: kubectl get nodes -o wide
+  environment:
+    KUBECONFIG: /etc/kubernetes/admin.conf
+  register: postflight_nodes
+  changed_when: false
+
+- name: Show system pods
+  ansible.builtin.command: kubectl get pods -A
+  environment:
+    KUBECONFIG: /etc/kubernetes/admin.conf
+  register: postflight_pods
+  changed_when: false
+
+- name: Print cluster summary
+  ansible.builtin.debug:
+    msg:
+      - "{{ postflight_nodes.stdout_lines }}"
+      - "{{ postflight_pods.stdout_lines }}"

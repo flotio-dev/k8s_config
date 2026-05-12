@@ -1,0 +1,42 @@
+---
+- name: Check GHCR pull secret token is configured
+  ansible.builtin.assert:
+    that:
+      - ghcr_token | length > 0
+      - ghcr_token != "REPLACE_ME"
+    fail_msg: >-
+      GHCR_TOKEN is required to create the {{ ghcr_secret_name }} image pull
+      secret. Set it in config/prod.env with a GitHub token that has
+      read:packages access.
+  when: ghcr_pull_secret_enabled
+
+- name: Ensure namespaces exist for GHCR pull secret
+  ansible.builtin.command: kubectl create namespace {{ item }}
+  environment:
+    KUBECONFIG: /etc/kubernetes/admin.conf
+  loop: "{{ ghcr_secret_namespaces }}"
+  register: ghcr_namespace_create
+  changed_when: ghcr_namespace_create.rc == 0
+  failed_when:
+    - ghcr_namespace_create.rc != 0
+    - "'AlreadyExists' not in ghcr_namespace_create.stderr"
+  when: ghcr_pull_secret_enabled
+
+- name: Create or update GHCR pull secret
+  ansible.builtin.shell: |
+    set -eu
+    kubectl -n {{ item }} create secret docker-registry {{ ghcr_secret_name }} \
+      --docker-server={{ ghcr_registry }} \
+      --docker-username={{ ghcr_username | quote }} \
+      --docker-password={{ ghcr_token | quote }} \
+      --docker-email={{ ghcr_email | quote }} \
+      --dry-run=client -o yaml | kubectl apply -f -
+  args:
+    executable: /bin/bash
+  environment:
+    KUBECONFIG: /etc/kubernetes/admin.conf
+  loop: "{{ ghcr_secret_namespaces }}"
+  register: ghcr_pull_secret_apply
+  changed_when: "'created' in ghcr_pull_secret_apply.stdout or 'configured' in ghcr_pull_secret_apply.stdout"
+  when: ghcr_pull_secret_enabled
+  no_log: true

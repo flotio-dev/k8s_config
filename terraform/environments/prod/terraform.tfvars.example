@@ -1,0 +1,15 @@
+proxmox_endpoint     = "https://192.168.1.16:8006/"
+proxmox_insecure     = true
+proxmox_node_name    = "pve"
+template_vm_id       = 9000
+vm_datastore_id      = "local-lvm"
+snippet_datastore_id = "local"
+vm_bridge            = "vmbr0"
+ipv4_gateway         = "192.168.1.1"
+dns_servers          = ["1.1.1.1", "8.8.8.8"]
+ssh_public_key       = "ssh-ed25519 AAAA_REPLACE_ME user@host"
+
+# Keep this secret out of Git. Prefer:
+# export TF_VAR_proxmox_api_token='terraform@pve!terraform=xxxxx'
+# or PowerShell:
+# $env:TF_VAR_proxmox_api_token = "terraform@pve!terraform=xxxxx"

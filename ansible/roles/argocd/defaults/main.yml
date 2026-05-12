@@ -1,0 +1,2 @@
+---
+argocd_wait_timeout: "{{ lookup('ansible.builtin.env', 'ARGOCD_WAIT_TIMEOUT') | default('300s', true) }}"

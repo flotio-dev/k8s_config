@@ -1,0 +1,2 @@
+---
+cert_manager_wait_timeout: "{{ lookup('ansible.builtin.env', 'CERT_MANAGER_WAIT_TIMEOUT') | default('240s', true) }}"

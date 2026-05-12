@@ -1,0 +1,44 @@
+---
+- name: Install cert-manager
+  ansible.builtin.command: kubectl apply -f {{ cert_manager_manifest_url }}
+  environment:
+    KUBECONFIG: /etc/kubernetes/admin.conf
+  register: cert_manager_install
+  changed_when: "'created' in cert_manager_install.stdout or 'configured' in cert_manager_install.stdout"
+  when: cert_manager_enabled
+
+- name: Wait for cert-manager controller
+  ansible.builtin.command: kubectl -n {{ cert_manager_namespace }} rollout status deployment/cert-manager --timeout={{ cert_manager_wait_timeout }}
+  environment:
+    KUBECONFIG: /etc/kubernetes/admin.conf
+  changed_when: false
+  when: cert_manager_enabled
+
+- name: Wait for cert-manager webhook
+  ansible.builtin.command: kubectl -n {{ cert_manager_namespace }} rollout status deployment/cert-manager-webhook --timeout={{ cert_manager_wait_timeout }}
+  environment:
+    KUBECONFIG: /etc/kubernetes/admin.conf
+  changed_when: false
+  when: cert_manager_enabled
+
+- name: Wait for cert-manager cainjector
+  ansible.builtin.command: kubectl -n {{ cert_manager_namespace }} rollout status deployment/cert-manager-cainjector --timeout={{ cert_manager_wait_timeout }}
+  environment:
+    KUBECONFIG: /etc/kubernetes/admin.conf
+  changed_when: false
+  when: cert_manager_enabled
+
+- name: Render ClusterIssuers
+  ansible.builtin.template:
+    src: clusterissuers.yml.j2
+    dest: /tmp/cert-manager-clusterissuers.yml
+    mode: "0644"
+  when: cert_manager_enabled
+
+- name: Apply ClusterIssuers
+  ansible.builtin.command: kubectl apply -f /tmp/cert-manager-clusterissuers.yml
+  environment:
+    KUBECONFIG: /etc/kubernetes/admin.conf
+  register: cert_manager_issuers_apply
+  changed_when: "'created' in cert_manager_issuers_apply.stdout or 'configured' in cert_manager_issuers_apply.stdout"
+  when: cert_manager_enabled

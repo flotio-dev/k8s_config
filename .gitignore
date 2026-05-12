@@ -1,0 +1,15 @@
+terraform/**/.terraform/
+terraform/**/*.tfstate
+terraform/**/*.tfstate.*
+terraform/**/terraform.tfvars
+terraform/**/crash.log
+terraform/**/crash.*.log
+terraform/**/override.tf
+terraform/**/override.tf.json
+terraform/**/*_override.tf
+terraform/**/*_override.tf.json
+ansible/inventory/hosts.generated.yml
+config/*.env
+config/*.local
+config/*vault-password*
+.ansible_vault_password
